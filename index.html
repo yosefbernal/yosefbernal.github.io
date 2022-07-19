@@ -1,0 +1,380 @@
+<html>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="refresh">
+<style>
+    :root {
+        --border-color: rgba(0, 0, 0, .3);
+    }
+
+    * {
+        box-sizing: border-box;
+    }
+
+    html,
+    body {
+        margin: 0;
+        padding: 0;
+        font-family: 'Courier New', Courier, monospace;
+    }
+
+    #mainLayoutGrid {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        grid-template-rows: 100vh;
+    }
+
+    #canvasContainer {
+        width: 100%;
+        height: 100%;
+        display: grid;
+        align-content: center;
+        justify-content: center;
+    }
+
+    #myCanvas {
+        border: 1px solid var(--border-color);
+        box-shadow: 0 0 10px var(--border-color);
+        width: calc(100% - 4em);
+        height: auto;
+        margin: 0em 2em;
+        max-height: calc(100vh - 4em);
+    }
+
+    #sideMenu {
+        padding: 1em;
+        border-left: 1px solid var(--border-color);
+        display: flex;
+        flex-direction: column;
+        justify-content: baseline;
+        gap: 20px;
+        align-items: baseline;
+    }
+
+    #colorsList {
+        display: flex;
+        width: 100%;
+        justify-content: space-between;
+    }
+
+    #colorsList>div {
+        width: 20px;
+        height: 20px;
+        border: 1px solid var(--border-color);
+    }
+
+    #options {
+        width: 100%;
+        display: grid;
+        grid-template-columns: 1fr auto;
+    }
+
+    #buttons {
+        display: flex;
+        flex-wrap: wrap;
+        width: 150px;
+        gap: 5px;
+    }
+</style>
+
+<body id="mainLayoutGrid">
+
+    <div id="canvasContainer">
+        <canvas id="myCanvas">
+        </canvas>
+    </div>
+
+    <div id="sideMenu">
+        <div id="colorsList">
+            <div id="background"></div>
+            <div id="shade1"></div>
+            <div id="shade2"></div>
+            <div id="shade3"></div>
+            <div id="shade4"></div>
+            <div id="shade5"></div>
+        </div>
+        <div id="options">
+            <div class="gridItem">Disolve</div>
+            <div class="gridItem"><input type="checkbox" id="disolve" checked></div>
+            <div class="gridItem">Disolve Black</div>
+            <div class="gridItem"><input type="checkbox" id="disolveBlack" checked></div>
+            <div class="gridItem">Circles</div>
+            <div class="gridItem"><input type="checkbox" id="circles" checked></div>
+            <div class="gridItem">Lines</div>
+            <div class="gridItem"><input type="checkbox" id="lines" checked></div>
+            <div class="gridItem">Rectangles</div>
+            <div class="gridItem"><input type="checkbox" id="rectangles" checked></div>
+            <div class="gridItem">Triangles</div>
+            <div class="gridItem"><input type="checkbox" id="triangles" checked></div>
+            <div class="gridItem">Sun</div>
+            <div class="gridItem"><input type="checkbox" id="sun" checked></div>
+        </div>
+        <div id="buttons">
+            <button class="button" onclick="StartAnimation();">Start</button>
+            <button class="button" onclick="stop = true;">Stop</button>
+            <button class="button" onclick="Save();">Save</button>
+            <button class="button" onclick="SetColors();">New colors</button>
+        </div>
+    </div>
+</body>
+
+<script>
+    var canvas = document.getElementById("myCanvas");
+    var context = canvas.getContext("2d");
+    canvas.height = window.screen.height;
+    canvas.width = window.screen.width;
+    var backgroundColorRGBA;
+    var backgroundColor;
+    var colors;
+    SetColors();
+    var stop = false;
+
+    function StartAnimation() {
+        stop = false;
+        var disolve = document.querySelector("#disolve").checked;
+        var disolveBlack = document.querySelector("#disolveBlack").checked;
+        var circles = document.querySelector("#circles").checked;
+        var lines = document.querySelector("#lines").checked;
+        var rectangles = document.querySelector("#rectangles").checked;
+        var triangles = document.querySelector("#triangles").checked;
+        var sun = document.querySelector("#sun").checked;
+
+        if (disolve) DrawPeriodically(() => Dissolve(backgroundColor, 4000), 20);
+        if (disolveBlack) DrawPeriodically(() => Dissolve('rgba(0,0,0,1)', 5000), 20);
+        //if (disolve) DrawPeriodically(() => DrawEvenlyDistributedPixels(2000), 1000);
+        if (circles) DrawPeriodically(() => DrawCircle(100, GetOneColor()), 200);
+        if (lines) DrawPeriodically(() => DrawLine(100, GetOneColor()), 200);
+        if (rectangles) DrawPeriodically(() => DrawRectangle(100, 100, GetOneColor(), 'rgba(0,0,0,.5)'), 1000);
+        if (triangles) DrawPeriodically(() => DrawTriangle(100, GetOneColor()), 600);
+        if (sun) DrawPeriodically(() => DrawSun(10, 20, 90, 30, GetOneColor(), 1), 100);
+        //DrawPeriodically(InvertRandomPixels, 100);
+        //DrawPeriodically(FadeToBackgroundColor, 50);
+    }
+    function SetColors() {
+        backgroundColorRGBA = GetRandomRGBAValues();
+        backgroundColor = RGBAValuesToString(backgroundColorRGBA);
+        colors = [backgroundColor];
+
+        SetShades(GetRandomRGBAValues());
+        DisplayActiveColors();
+    }
+
+    //Utility functions
+    function RandBetween(min, max) {
+        return Math.floor(Math.random() * (max - min + 1)) + min;
+    }
+    function Sleep(time) {
+        return new Promise(resolve => setTimeout(resolve, time));
+    }
+    async function DrawPeriodically(func, period) {
+        while (stop == false) {
+            await Sleep(period);
+            func();
+        }
+    }
+    function GetRGBAValues(color) {
+        var rgbaValues = color
+            .replace(/^rgba?\(|\s+|\)$/g, '')
+            .split(',')
+            .map(function (item) {
+                return parseInt(item);
+            });
+        return rgbaValues;
+    }
+    function ChooseBetween(options) {
+        var i = RandBetween(0, options.length - 1);
+        return options[i];
+    }
+    function Save() {
+        var image = canvas.toDataURL("image/png").replace("image/png", "image/octet-stream");
+        const link = document.createElement('a');
+        link.download = RandBetween(100000, 999999);
+        link.href = canvas.toDataURL();
+        link.click();
+        link.delete;
+    }
+
+    //Random color functions
+    function GetRandomRGBAValues(randomizeAlpha) {
+        var r = RandBetween(0, 255);
+        var g = RandBetween(0, 255);
+        var b = RandBetween(0, 255);
+        var a = randomizeAlpha ? RandBetween(1, 10) / 10 : 1;
+        return [r, g, b, a];
+    }
+    function RGBAValuesToString(rgba) {
+        var color = `rgba(${rgba[0]}, ${rgba[1]}, ${rgba[2]}, ${rgba[3]})`;
+        return color;
+    }
+    function TestShades() {
+        for (var i = 0, ii = 0; i < shades.length; i++, ii += 60) {
+            var shade = shades[i];
+            var color = RGBAValuesToString(shade);
+            context.fillStyle = color;
+            context.fillRect(ii, 0, 100, 100);
+        }
+    }
+    function SetShades(baseColorRGBA) {
+        var shades = GetShades(baseColorRGBA, 0.9, - 0.2);
+        for (var i = 0, ii = 1; i < shades.length; i++, ii++) {
+            colors[ii] = RGBAValuesToString(shades[i]);
+        }
+    }
+    function GetShades(rgba, shadeRatio, decrease) {
+        var r = rgba[0];
+        var g = rgba[1];
+        var b = rgba[2];
+        var a = rgba[3];
+        var sds = [];
+        for (var i = 0, ii = shadeRatio; i < 5; i++, ii += decrease) {
+            var rs = GetShade(r, ii);
+            var gs = GetShade(g, ii);
+            var bs = GetShade(b, ii);
+            sds[i] = [rs, gs, bs, a];
+        }
+        return sds;
+    }
+    function GetShade(val, shadeRatio) {
+        var x = Math.round(val * shadeRatio);
+        var y = x > 255 ? 255 : x;
+        return y;
+    }
+    function GetOneColor() {
+        var c = RandBetween(0, colors.length - 1);
+        var color = colors[c];
+        return color;
+    }
+    function DisplayActiveColors() {
+        var bg = document.querySelector("#background");
+        bg.style.backgroundColor = backgroundColor;
+        for (var i = 0, ii = 1; i < 5; i++, ii++) {
+            var s = document.querySelector(`#shade${ii}`);
+            s.style.backgroundColor = colors[i];
+        }
+    }
+
+    //Drawing functions
+    function FillScreen(color) {
+        context.fillStyle = color;
+        context.fillRect(0, 0, canvas.width, canvas.height);
+    }
+    function DrawCircle(maxRadius, color) {
+        var x = RandBetween(0, canvas.width);
+        var y = RandBetween(0, canvas.height);
+        context.fillStyle = color;
+        var radius = RandBetween(1, maxRadius);
+        context.beginPath();
+        context.arc(x, y, radius, 0, 2 * Math.PI);
+        context.fill();
+    }
+
+    function DrawLine(maxLineWidth, color) {
+        var xs = RandBetween(0, canvas.width);
+        var ys = RandBetween(0, canvas.height);
+        var xe = RandBetween(0, canvas.width);
+        var ye = RandBetween(0, canvas.height);
+        var width = RandBetween(1, maxLineWidth);
+        context.strokeStyle = color;
+        context.lineWidth = width;
+        context.beginPath();
+        context.moveTo(xs, ys);
+        var o = [xs, ys, xe, ye];
+        context.lineTo(ChooseBetween(o), ChooseBetween(o));
+        context.stroke();
+    }
+
+    function DrawRectangle(maxWidth, maxHeight, color, shadowColor) {
+        var x = RandBetween(0, canvas.width);
+        var y = RandBetween(0, canvas.height);
+        var width = RandBetween(0, maxWidth);
+        var height = RandBetween(0, maxHeight);
+        context.fillStyle = color;
+        context.shadowColor = shadowColor;
+        context.shadowBlur = 200;
+        context.fillRect(x - (width / 2), y - (height / 2), width, height);
+    }
+    function DrawTriangle(maxWidth, color) {
+        var x = RandBetween(0, canvas.width);
+        var y = RandBetween(0, canvas.height);
+        var width = RandBetween(1, maxWidth);
+        context.fillStyle = color;
+        context.beginPath();
+        context.moveTo(x - (width / 2), canvas.height);
+        context.lineTo(x, y);
+        context.lineTo(x + (width / 2), canvas.height);
+        context.closePath();
+        context.fill();
+    }
+    function DrawEvenlyDistributedPixels(maxGap) {
+        var imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+        var multiplier = RandBetween(16, maxGap);
+        var rgba = GetRGBAValues(backgroundColor);
+        for (var i = 0; i < imageData.data.length; i += 4 * multiplier) {
+            imageData.data[i + 0] = rgba[0];
+            imageData.data[i + 1] = rgba[1];
+            imageData.data[i + 2] = rgba[2];
+            imageData.data[i + 3] = rgba[3];
+        }
+        context.putImageData(imageData, 0, 0);
+    }
+    function Dissolve(color, spacing) {
+        var imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+        var next = 4;
+        var rgba = GetRGBAValues(color);
+        for (var i = 0; i < imageData.data.length; i += next) {
+            imageData.data[i + 0] = rgba[0];
+            imageData.data[i + 1] = rgba[1];
+            imageData.data[i + 2] = rgba[2];
+            imageData.data[i + 3] = 255;
+            next = RandBetween(1, spacing) * 4;
+        }
+        context.putImageData(imageData, 0, 0);
+    }
+    function InvertRandomPixels() {
+        var imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+        var next = 4;
+        for (var i = 0; i < imageData.data.length; i += next) {
+            imageData.data[i + 0] = imageData.data[i + 0] ^ 255;
+            imageData.data[i + 1] = imageData.data[i + 1] ^ 255;
+            imageData.data[i + 2] = imageData.data[i + 2] ^ 255;
+            imageData.data[i + 3] = 255;
+            next = RandBetween(1, 1000) * 4;
+        }
+        context.putImageData(imageData, 0, 0);
+    }
+    function FadeToBackgroundColor() {
+        context.beginPath();
+        var rgba = GetRGBAValues(backgroundColor);
+        context.fillStyle = `rgba(${rgba[0]},${rgba[1]},${rgba[2]},0.1)`;
+        context.fillRect(0, 0, canvas.width, canvas.height);
+    }
+    function DrawSun(radius, lenght, lines, levels, color, lineWidth) {
+        var a = RandBetween(0, canvas.width);
+        var b = RandBetween(0, canvas.height);
+        context.strokeStyle = color;
+        context.lineWidth = lineWidth;
+        // var radius = 5;
+        // context.beginPath();
+        // context.arc(a, b, radius, 0, 2 * Math.PI);
+        // context.fill();
+
+        for (var l = 0, r = radius; l < levels; l++, r += lenght + 5) {
+            for (var i = 0; i < 360; i += (360 / lines)) {
+                var chance = RandBetween(0, 1);
+                if (chance == 0) continue;
+                var angle = i * (Math.PI / 180);
+                //lenght = RandBetween(1, 40);
+                var x1 = a + (r + lenght) * Math.sin(angle);
+                var y1 = b + (r + lenght) * Math.cos(angle);
+                var x2 = a + r * Math.sin(angle);
+                var y2 = b + r * Math.cos(angle);
+                context.beginPath();
+                context.moveTo(x1, y1);
+                context.lineTo(x2, y2);
+                context.stroke();
+            }
+        }
+    }
+
+</script>
+
+</html>
