@@ -106,7 +106,7 @@
             <div class="gridItem">Triangles</div>
             <div class="gridItem"><input type="checkbox" id="triangles" checked></div>
             <div class="gridItem">Sun</div>
-            <div class="gridItem"><input type="checkbox" id="sun" checked></div>
+            <div class="gridItem"><input type="checkbox" id="sun"></div>
         </div>
         <div id="buttons">
             <button class="button" onclick="StartAnimation();">Start</button>
@@ -136,7 +136,7 @@
         var lines = document.querySelector("#lines").checked;
         var rectangles = document.querySelector("#rectangles").checked;
         var triangles = document.querySelector("#triangles").checked;
-        //var sun = document.querySelector("#sun").checked;
+        var sun = document.querySelector("#sun").checked;
 
         if (disolve) DrawPeriodically(() => Dissolve(backgroundColor, 4000), 20);
         if (disolveBlack) DrawPeriodically(() => Dissolve('rgba(0,0,0,1)', 5000), 20);
